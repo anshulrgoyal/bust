@@ -30,7 +30,7 @@ impl FromStr for Header {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let v: Vec<&str> = s.split("=").collect();
         if v.len() != 2 {
-            return Err("invalid arguments".to_owned());
+            return Err("invalid argument should be in  form of key=value".to_owned());
         }
         let head_name = match http::header::HeaderName::from_bytes(v[0].as_bytes()) {
             Ok(head_name) => head_name,
@@ -93,7 +93,7 @@ impl FromStr for ValuePair {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let v: Vec<&str> = s.split("=").collect();
         if v.len() != 2 {
-            return Err("invalid arguments".to_owned());
+            return Err("invalid argument should be in form of key=value".to_owned());
         }
         return Ok(ValuePair {
             key: v[0].to_owned(),
