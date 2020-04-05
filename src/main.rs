@@ -1,6 +1,7 @@
 use std::net::SocketAddr;
 use std::ops::Div;
 
+use spinners::{Spinner, Spinners};
 use trust_dns_resolver::config::*;
 use trust_dns_resolver::TokioAsyncResolver;
 
@@ -17,6 +18,7 @@ mod test;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let sp = Spinner::new(Spinners::Dots9, "Running your benchmark".into());
     let t = std::time::Instant::now();
     let args: Bust = argh::from_env();
     let method = match args.method {
@@ -145,6 +147,10 @@ async fn main() -> anyhow::Result<()> {
             _ => return Err(anyhow::anyhow!("Error with protocol")),
         }
     }
+
+    sp.stop();
+    print!("\r");
+
     println!(
         " Schema: {}\n Hostname: {}\n Path: {}\n Port: {}\n Resposne-Length: {}\n",
         schema,
@@ -153,7 +159,6 @@ async fn main() -> anyhow::Result<()> {
         port,
         len
     );
-
     compeleted.sort();
     ac.connect = ac.connect.div(args.total_request as u128);
     ac.handshake = ac.handshake.div(args.total_request as u128);
