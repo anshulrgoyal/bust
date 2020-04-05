@@ -149,6 +149,7 @@ struct Stats {
     writing: u128,
     compelete: u128,
     read: u128,
+    length:usize
 }
 
 #[derive(Debug)]
@@ -199,6 +200,7 @@ async fn make_https_request(host: &str, ip: &SocketAddr, body: &[u8],extra:&Body
         writing: writing,
         read: compelete - connect - waiting - handshake - writing,
         compelete: compelete,
+        length:v.len()
     });
 }
 
@@ -240,6 +242,7 @@ async fn make_http_request(ip: &SocketAddr, body: &[u8],extra:&Body) -> anyhow::
         writing: writing,
         read: compelete - connect - waiting - writing,
         compelete: compelete,
+        length:v.len()
     });
 }
 #[tokio::main]
@@ -294,13 +297,14 @@ async fn main() -> anyhow::Result<()> {
         None => return Err(anyhow::anyhow!("Error while making dns query")),
     };
     let lookup_time = lookup.elapsed().as_millis();
-    let socket = match &req.uri().port() {
-        Some(port)=>SocketAddr::new(ip, port.as_u16()),
+    let port = match &req.uri().port() {
+        Some(port)=>port.as_u16(),
         None=>match schema {
-        "https" => SocketAddr::new(ip, 443),
-        "http" => SocketAddr::new(ip, 80),
+        "https" => 443,
+        "http" => 80,
         _ => return Err(anyhow::anyhow!("Error while creating ip")),
     }};
+    let socket=SocketAddr::new(ip, port);
     let mut ac = Stats {
         connect: 0,
         handshake: 0,
@@ -308,6 +312,7 @@ async fn main() -> anyhow::Result<()> {
         writing: 0,
         read: 0,
         compelete: 0,
+        length:0
     };
     let mut max = Stats {
         connect: 0,
@@ -316,6 +321,7 @@ async fn main() -> anyhow::Result<()> {
         writing: 0,
         read: 0,
         compelete: 0,
+        length:0
     };
     let mut min = Stats {
         connect: u128::max_value(),
@@ -324,7 +330,9 @@ async fn main() -> anyhow::Result<()> {
         writing: u128::max_value(),
         read: u128::max_value(),
         compelete: u128::max_value(),
+        length:usize::max_value(),
     };
+    let mut len:usize=0;
     let cycles = args.total_request / args.concurrency;
     // let c=Vec::with_capacity((cycles+1) as usize);
     let mut compeleted = vec![];
@@ -337,6 +345,7 @@ async fn main() -> anyhow::Result<()> {
                 }
                 let s = futures::future::try_join_all(v).await?;
                 s.iter().for_each(|c| {
+                    len=c.length;
                     compeleted.push(c.compelete);
                     min.connect = std::cmp::min(min.connect, c.connect);
                     min.handshake = std::cmp::min(min.handshake, c.handshake);
@@ -367,6 +376,7 @@ async fn main() -> anyhow::Result<()> {
                 }
                 let s = futures::future::try_join_all(v).await?;
                 s.iter().for_each(|c| {
+                    len=c.length;
                     compeleted.push(c.compelete);
                     min.connect = std::cmp::min(min.connect, c.connect);
                     min.handshake = std::cmp::min(min.handshake, c.handshake);
@@ -394,10 +404,12 @@ async fn main() -> anyhow::Result<()> {
         }
     }
     println!(
-        " Schema: {}\n Hostname: {}\n Path: {}\n",
+        " Schema: {}\n Hostname: {}\n Path: {}\n Port: {}\n Resposne-Length: {}\n",
         schema,
         host,
-        &req.uri().path()
+        &req.uri().path(),
+        port,
+        len
     );
     compeleted.sort();
     let total = compeleted.len();
@@ -436,7 +448,7 @@ async fn main() -> anyhow::Result<()> {
         Cell::new(max.handshake.to_string().as_str()),
     ]));
     table.add_row(Row::new(vec![
-        Cell::new("Waiting For Resposne"),
+        Cell::new("Waiting For Response"),
         Cell::new(min.waiting.to_string().as_str()),
         Cell::new(ac.waiting.to_string().as_str()),
         Cell::new(max.waiting.to_string().as_str()),
