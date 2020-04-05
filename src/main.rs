@@ -10,6 +10,7 @@ use trust_dns_resolver::config::*;
 use trust_dns_resolver::TokioAsyncResolver;
 
 mod http_parser;
+mod multipart;
 
 #[derive(Debug)]
 struct ValuePair {
@@ -130,7 +131,11 @@ struct Bust {
 
     /// file path to upload the file
     #[argh(option, short = 'f')]
-    file: Option<String>,
+    file: Option<ValuePair>,
+
+/// data to be sent in request
+    #[argh(option,short = 'd')]
+    data:Option<String>,
 
     #[argh(positional)]
     url: String,
@@ -146,7 +151,14 @@ struct Stats {
     read: u128,
 }
 
-async fn make_https_request(host: &str, ip: &SocketAddr, body: &[u8]) -> anyhow::Result<Stats> {
+#[derive(Debug)]
+enum Body {
+    File(Vec<u8>,Vec<u8>,Vec<u8>),
+    Simple(Vec<u8>),
+    None,
+}
+
+async fn make_https_request(host: &str, ip: &SocketAddr, body: &[u8],extra:&Body) -> anyhow::Result<Stats> {
     let conn = native_tls::TlsConnector::new()?;
     let connector = tokio_tls::TlsConnector::from(conn);
     let start = std::time::Instant::now();
@@ -154,7 +166,25 @@ async fn make_https_request(host: &str, ip: &SocketAddr, body: &[u8]) -> anyhow:
     let connect = start.elapsed().as_millis();
     let mut con = connector.connect(host, stream).await?;
     let handshake = start.elapsed().as_millis() - connect;
-    con.write_all(body).await?;
+    con.write(body).await?;
+    match extra {
+        Body::File(head,middle,end) => {
+            con.write(format!("\r\ncontent-length: {}", &head.len()+&middle.len()+&end.len()).as_bytes()).await?;
+            con.write(b"\r\n\r\n").await?;
+            con.write(&head).await?;
+            con.write(&middle).await?;
+            con.write_all(&end).await?;
+        },
+        Body::Simple(main)=>{
+            con.write(format!("\r\ncontent-length: {}", &main.len()).as_bytes()).await?;
+            con.write(b"\r\n\r\n").await?;
+            con.write_all(&main).await?;
+        },
+        Body::None => {
+            con.write(b"\r\n\r\n").await?;
+            con.write_all(b" \r\n").await?;
+        },
+    }
     let writing = start.elapsed().as_millis() - handshake - connect;
     let mut first: [u8; 1] = [0];
     con.read(&mut first).await?;
@@ -172,11 +202,30 @@ async fn make_https_request(host: &str, ip: &SocketAddr, body: &[u8]) -> anyhow:
     });
 }
 
-async fn make_http_request(ip: &SocketAddr, body: &[u8]) -> anyhow::Result<Stats> {
+async fn make_http_request(ip: &SocketAddr, body: &[u8],extra:&Body) -> anyhow::Result<Stats> {
     let start = std::time::Instant::now();
     let mut stream = tokio::net::TcpStream::connect(ip).await?;
     let connect = start.elapsed().as_millis();
-    stream.write_all(body).await?;
+    stream.write(body).await?;
+    match extra {
+        Body::File(head,middle,end) => {
+            stream.write(format!("\r\ncontent-length: {}", &head.len()+&middle.len()+&end.len()).as_bytes()).await?;
+            stream.write(b"\r\n\r\n").await?;
+            stream.write(&head).await?;
+            stream.write(&middle).await?;
+            stream.write_all(&end).await?;
+            stream.write_all(b"\r\n").await?;
+        },
+        Body::Simple(main)=>{
+            stream.write(format!("\r\ncontent-length: {}", &main.len()).as_bytes()).await?;
+            stream.write(b"\r\n\r\n").await?;
+            stream.write_all(&main).await?;
+        },
+        Body::None => {
+            stream.write(b"\r\n\r\n").await?;
+            stream.write_all(b" \r\n").await?;
+        },
+    }
     let writing = start.elapsed().as_millis() - connect;
     let mut first: [u8; 1] = [0];
     stream.read(&mut first).await?;
@@ -210,6 +259,17 @@ async fn main() -> anyhow::Result<()> {
     for v in args.headers {
         heads.insert(v.key, v.value);
     }
+    let file=match args.file {
+        Some(expr) => {
+            heads.insert("content-type",http::header::HeaderValue::from_str("multipart/form-data; boundary=----------------123456789")?);
+            let data=multipart::get_file_as_parts("----------------123456789",expr.key.as_str(),expr.value.as_str()).await?;
+            Body::File(data.0,data.1,data.2)
+        },
+        None => match args.data {
+            Some(expr) => Body::Simple(expr.bytes().collect()),
+            None => Body::None,
+        },
+    };
     let schema = match req.uri().scheme_str() {
         Some(scheme) => scheme,
         None => return Err(anyhow::anyhow!("Error the protocol")),
@@ -273,7 +333,7 @@ async fn main() -> anyhow::Result<()> {
             "http" => {
                 let mut v = Vec::with_capacity(args.concurrency as usize);
                 for _ in 1..args.concurrency {
-                    v.push(make_http_request(&socket, body.as_slice()))
+                    v.push(make_http_request(&socket, body.as_slice(),&file))
                 }
                 let s = futures::future::try_join_all(v).await?;
                 s.iter().for_each(|c| {
@@ -303,7 +363,7 @@ async fn main() -> anyhow::Result<()> {
             "https" => {
                 let mut v = Vec::with_capacity(args.concurrency as usize);
                 for _ in 1..args.concurrency {
-                    v.push(make_https_request(host, &socket, body.as_slice()))
+                    v.push(make_https_request(host, &socket, body.as_slice(),&file));
                 }
                 let s = futures::future::try_join_all(v).await?;
                 s.iter().for_each(|c| {

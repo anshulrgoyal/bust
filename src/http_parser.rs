@@ -15,12 +15,12 @@ pub fn http_string<T>(req: &Request<T>) -> anyhow::Result<Vec<u8>> {
             return Err(anyhow::anyhow!("no path in url found"));
         }
     };
-    headers.push_str(format!("Host: {}\r\nUser-Agent: Bust/0.0.1", host).as_str());
+    headers.push_str(format!("Host: {}\r\nUser-Agent: Bust/0.0.1\r\nConnection:Close", host).as_str());
     for (key, val) in req.headers() {
         headers.push_str(format!("\r\n{}: {}", key, val.to_str().unwrap()).as_str())
     }
     let stup = format!(
-        "{} {} HTTP/1.1\r\n{}\r\n\r\n\"\"\r\n",
+        "{} {} HTTP/1.1\r\n{}",
         req.method(),
         path,
         headers
