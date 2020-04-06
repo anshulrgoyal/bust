@@ -39,23 +39,22 @@ jobs:
         key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
     - name: Build
       run: cargo build --release
-    - name: Run tests
-      run: cargo test --verbose
     - name: Create Release
       id: create_release
       uses: actions/create-release@latest
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
       with:
-        tag_name: 0.0.1-${{ matrix.platform }}
+        tag_name: 0.0.2-${{ matrix.platform }}
         release_name: new
         body: |
           Changes in this Release
             - New Build
         draft: false
         prerelease: false
-    - name: Upload Release Asset
-      id: upload-release-asset 
+    - name: Upload Release Asset Mac/Linux
+      if: matrix.platform=='ubuntu-latest' || matrix.platform='macos-latest'
+      id: upload-release-asset-linux
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -64,3 +63,14 @@ jobs:
         asset_path: ./target/release/bust
         asset_name: bust_${{ matrix.platform }}
         asset_content_type: application/binary
+    - name: Upload Release Asset Window
+      if: matrix.platform=='ubuntu-latest' || matrix.platform='macos-latest'
+      id: upload-release-asset-window
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: .\target\release\bust
+        asset_name: bust_${{ matrix.platform }}
+        asset_content_type: application/binary  
