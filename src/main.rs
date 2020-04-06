@@ -1,3 +1,4 @@
+#![feature(test)]
 use std::net::SocketAddr;
 use std::ops::Div;
 
@@ -15,6 +16,7 @@ mod multipart;
 mod request;
 mod tables;
 mod test;
+mod bench;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

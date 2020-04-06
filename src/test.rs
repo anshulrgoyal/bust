@@ -1,3 +1,6 @@
+extern crate test;
+
+
 #[cfg(test)]
 mod tests {
     use crate::http_parser;
