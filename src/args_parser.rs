@@ -2,13 +2,14 @@ use std::str::FromStr;
 
 use argh::FromArgs;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ValuePair {
     pub key: String,
     pub value: String,
 }
 
-#[derive(Debug)]
+/// Header with key value pair
+#[derive(Debug, PartialEq)]
 pub struct Header {
     pub key: http::header::HeaderName,
     pub value: http::header::HeaderValue,
@@ -92,7 +93,7 @@ impl FromStr for ValuePair {
     }
 }
 
-#[derive(FromArgs, Debug)]
+#[derive(FromArgs, Debug, PartialEq)]
 #[argh(description = "A tool for Stress Testing")]
 pub struct Bust {
     /// pass username  and password in for username:password

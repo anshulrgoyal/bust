@@ -13,13 +13,13 @@ pub struct Stats {
     pub length: usize,
 }
 
-#[derive(Debug)]
 pub enum Body {
     File(Vec<u8>, Vec<u8>, Vec<u8>),
     Simple(Vec<u8>),
     None,
 }
 
+/// Make https request and bench mark performace of the request. This function uses native tls for https certs.
 pub async fn make_https_request(
     host: &str,
     ip: &SocketAddr,

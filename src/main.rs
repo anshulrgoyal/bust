@@ -18,7 +18,7 @@ mod test;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let sp = Spinner::new(Spinners::Dots9, "Running your benchmark".into());
+    let sp = Spinner::new(Spinners::Dots12, "Running your benchmark".into());
     let t = std::time::Instant::now();
     let args: Bust = argh::from_env();
     let method = match args.method {
