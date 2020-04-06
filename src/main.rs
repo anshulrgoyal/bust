@@ -1,5 +1,5 @@
-#![feature(test)]
 
+#![feature(test)]
 
 use std::net::SocketAddr;
 use std::ops::Div;
@@ -17,8 +17,8 @@ mod http_parser;
 mod multipart;
 mod request;
 mod tables;
-mod test;
 mod bench;
+mod test;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
