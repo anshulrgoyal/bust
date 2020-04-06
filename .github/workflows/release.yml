@@ -6,7 +6,7 @@ on:
       - master
     tags:
       - v*
-      - !refs/heads/master
+      - '!refs/heads/master'
 
 jobs:
   build:
