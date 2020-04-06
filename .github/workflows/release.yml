@@ -1,4 +1,4 @@
-name: Rust
+name: Release
 
 on:
   push:
@@ -35,7 +35,7 @@ jobs:
         path: target
         key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --release
     - name: Run tests
       run: cargo test --verbose
     - name: Create Release
