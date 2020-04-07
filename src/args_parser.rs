@@ -102,7 +102,7 @@ pub struct Bust {
 
     /// provide cookie for the request
     #[argh(option, short = 'C')]
-    pub cookies: Vec<ValuePair>,
+    pub cookies: Vec<String>,
 
     /// custom http method
     #[argh(option, short = 'M')]

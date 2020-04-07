@@ -7,14 +7,14 @@ mod tests {
 
     #[bench]
     fn bench_body_parsing(b: &mut Bencher) {
-        b.iter(||{
+        b.iter(|| {
             let req: http::Request<Vec<u8>> = http::request::Builder::new()
                 .method("POST")
                 .header("content-type", "application/json")
                 .uri("https://google.com")
                 .body(vec![])
                 .unwrap();
-            crate::http_parser::http_string(&req).unwrap()
+            crate::http_parser::http_string(&req, None).unwrap()
         })
     }
 }

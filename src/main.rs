@@ -1,4 +1,3 @@
-
 #![feature(test)]
 
 use std::net::SocketAddr;
@@ -12,12 +11,12 @@ use crate::args_parser::Bust;
 use crate::request::{make_http_request, make_https_request, Body, Stats};
 
 mod args_parser;
+mod bench;
 mod calculate;
 mod http_parser;
 mod multipart;
 mod request;
 mod tables;
-mod bench;
 mod test;
 
 #[tokio::main]
@@ -34,6 +33,12 @@ async fn main() -> anyhow::Result<()> {
         .uri(args.url)
         .body(vec![])?;
     let heads = req.headers_mut();
+    for c in args.cookies {
+        heads.insert(
+            http::header::SET_COOKIE,
+            http::header::HeaderValue::from_str(c.as_str())?,
+        );
+    }
     for v in args.headers {
         heads.insert(v.key, v.value);
     }
@@ -66,7 +71,7 @@ async fn main() -> anyhow::Result<()> {
         Some(host) => host,
         None => return Err(anyhow::anyhow!("Host not provided")),
     };
-    let body = http_parser::http_string(&req)?;
+    let body = http_parser::http_string(&req, args.auth)?;
     let lookup = std::time::Instant::now();
     let resolver = TokioAsyncResolver::tokio(
         ResolverConfig::cloudflare(),
@@ -91,24 +96,8 @@ async fn main() -> anyhow::Result<()> {
         },
     };
     let socket = SocketAddr::new(ip, port);
-    let mut ac = Stats {
-        connect: 0,
-        handshake: 0,
-        waiting: 0,
-        writing: 0,
-        read: 0,
-        compelete: 0,
-        length: 0,
-    };
-    let mut max = Stats {
-        connect: 0,
-        handshake: 0,
-        waiting: 0,
-        writing: 0,
-        read: 0,
-        compelete: 0,
-        length: 0,
-    };
+    let mut ac = Stats::default();
+    let mut max = Stats::default();
     let mut min = Stats {
         connect: u128::max_value(),
         handshake: u128::max_value(),
@@ -119,33 +108,46 @@ async fn main() -> anyhow::Result<()> {
         length: usize::max_value(),
     };
     let mut len: usize = 0;
+    let mut fail = 0;
+    let mut success = 0;
     let cycles = args.total_request / args.concurrency;
-    // let c=Vec::with_capacity((cycles+1) as usize);
     let mut compeleted = vec![];
     for _ in 0..cycles {
         match schema {
             "http" => {
                 let mut v = Vec::with_capacity(args.concurrency as usize);
-                for _ in 1..args.concurrency {
+                for _ in 0..args.concurrency {
                     v.push(make_http_request(&socket, body.as_slice(), &file))
                 }
-                let s = futures::future::try_join_all(v).await?;
-                s.iter().for_each(|c| {
-                    len = c.length;
-                    compeleted.push(c.compelete);
-                    calculate::calculate_stats(&mut min, &mut max, &c, &mut ac)
+                let s = futures::future::join_all(v).await;
+                s.iter().for_each(|ele| match ele {
+                    Ok(c) => {
+                        success = success + 1;
+                        len = c.length;
+                        compeleted.push(c.compelete);
+                        calculate::calculate_stats(&mut min, &mut max, &c, &mut ac)
+                    }
+                    Err(_) => {
+                        fail = fail + 1;
+                    }
                 });
             }
             "https" => {
                 let mut v = Vec::with_capacity(args.concurrency as usize);
-                for _ in 1..args.concurrency {
+                for _ in 0..args.concurrency {
                     v.push(make_https_request(host, &socket, body.as_slice(), &file));
                 }
-                let s = futures::future::try_join_all(v).await?;
-                s.iter().for_each(|c| {
-                    len = c.length;
-                    compeleted.push(c.compelete);
-                    calculate::calculate_stats(&mut min, &mut max, &c, &mut ac)
+                let s = futures::future::join_all(v).await;
+                s.iter().for_each(|ele| match ele {
+                    Ok(c) => {
+                        success = success + 1;
+                        len = c.length;
+                        compeleted.push(c.compelete);
+                        calculate::calculate_stats(&mut min, &mut max, &c, &mut ac)
+                    }
+                    Err(_) => {
+                        fail = fail + 1;
+                    }
                 });
             }
             _ => return Err(anyhow::anyhow!("Error with protocol")),
@@ -154,15 +156,21 @@ async fn main() -> anyhow::Result<()> {
 
     sp.stop();
     print!("\r");
-
+    if compeleted.len() < 3 {
+        println!("{}", "Benchmark failed due to failure of request");
+        return Ok(());
+    }
     println!(
-        " Schema: {}\n Hostname: {}\n Path: {}\n Port: {}\n Resposne-Length: {}\n",
+        " Schema          : {}\n Hostname        : {}\n Path            : {}\n Port            : {}\n Resposne-Length : {}\n",
         schema,
         host,
         &req.uri().path(),
         port,
         len
     );
+    println!(" Number of Total Request     : {}",fail+success);
+    println!(" Number of Sucessfull Request: {}",success);
+    println!(" Number of Failed Request    : {}",fail);
     compeleted.sort();
     ac.connect = ac.connect.div(args.total_request as u128);
     ac.handshake = ac.handshake.div(args.total_request as u128);

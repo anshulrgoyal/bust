@@ -1,6 +1,4 @@
-
 extern crate test;
-
 
 #[cfg(test)]
 mod tests {
@@ -36,7 +34,7 @@ mod tests {
             .uri("https://google.com")
             .body(vec![])
             .unwrap();
-        assert_eq!(str::from_utf8(&http_parser::http_string(&req).unwrap()).unwrap(),"POST / HTTP/1.1\r\nHost: google.com\r\nUser-Agent: Bust/0.0.1\r\nConnection:Close\r\ncontent-type: application/json");
+        assert_eq!(str::from_utf8(&http_parser::http_string(&req,None).unwrap()).unwrap(),"POST / HTTP/1.1\r\nHost: google.com\r\nUser-Agent: Bust/0.0.1\r\nConnection: Close\r\ncontent-type: application/json");
     }
 
     #[test]
@@ -47,8 +45,8 @@ mod tests {
             .body(vec![])
             .unwrap();
         assert_eq!(
-            str::from_utf8(&http_parser::http_string(&req).unwrap()).unwrap(),
-            "POST / HTTP/1.1\r\nHost: google.com\r\nUser-Agent: Bust/0.0.1\r\nConnection:Close"
+            str::from_utf8(&http_parser::http_string(&req, None).unwrap()).unwrap(),
+            "POST / HTTP/1.1\r\nHost: google.com\r\nUser-Agent: Bust/0.0.1\r\nConnection: Close"
         );
     }
 
@@ -60,7 +58,7 @@ mod tests {
             .uri("https://google.com")
             .body(vec![])
             .unwrap();
-        assert_eq!(str::from_utf8(&http_parser::http_string(&req).unwrap()).unwrap(),"GET / HTTP/1.1\r\nHost: google.com\r\nUser-Agent: Bust/0.0.1\r\nConnection:Close\r\ncontent-type: application/json");
+        assert_eq!(str::from_utf8(&http_parser::http_string(&req,None).unwrap()).unwrap(),"GET / HTTP/1.1\r\nHost: google.com\r\nUser-Agent: Bust/0.0.1\r\nConnection: Close\r\ncontent-type: application/json");
     }
 
     #[test]
@@ -71,7 +69,7 @@ mod tests {
             .uri("https://google.com?s=bust")
             .body(vec![])
             .unwrap();
-        assert_eq!(str::from_utf8(&http_parser::http_string(&req).unwrap()).unwrap(),"POST /?s=bust HTTP/1.1\r\nHost: google.com\r\nUser-Agent: Bust/0.0.1\r\nConnection:Close\r\ncontent-type: application/json");
+        assert_eq!(str::from_utf8(&http_parser::http_string(&req,None).unwrap()).unwrap(),"POST /?s=bust HTTP/1.1\r\nHost: google.com\r\nUser-Agent: Bust/0.0.1\r\nConnection: Close\r\ncontent-type: application/json");
     }
 
     #[test]
@@ -82,7 +80,7 @@ mod tests {
             .uri("https://localhost:4000")
             .body(vec![])
             .unwrap();
-        assert_eq!(str::from_utf8(&http_parser::http_string(&req).unwrap()).unwrap(),"POST / HTTP/1.1\r\nHost: localhost\r\nUser-Agent: Bust/0.0.1\r\nConnection:Close\r\ncontent-type: application/json");
+        assert_eq!(str::from_utf8(&http_parser::http_string(&req,None).unwrap()).unwrap(),"POST / HTTP/1.1\r\nHost: localhost\r\nUser-Agent: Bust/0.0.1\r\nConnection: Close\r\ncontent-type: application/json");
     }
 
     #[tokio::test]
@@ -116,7 +114,7 @@ mod tests {
         let socket = SocketAddr::new(ip, 80);
         request::make_http_request(
             &socket,
-            &http_parser::http_string(&req).unwrap(),
+            &http_parser::http_string(&req, None).unwrap(),
             &request::Body::None,
         )
         .await
@@ -154,7 +152,7 @@ mod tests {
         let socket = SocketAddr::new(ip, 80);
         request::make_http_request(
             &socket,
-            &http_parser::http_string(&req).unwrap(),
+            &http_parser::http_string(&req, None).unwrap(),
             &request::Body::Simple(b"test data".to_vec()),
         )
         .await
@@ -196,7 +194,7 @@ mod tests {
             .unwrap();
         request::make_http_request(
             &socket,
-            &http_parser::http_string(&req).unwrap(),
+            &http_parser::http_string(&req, None).unwrap(),
             &request::Body::File(data.0, data.1, data.2),
         )
         .await

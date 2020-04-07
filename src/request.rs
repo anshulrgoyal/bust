@@ -1,8 +1,9 @@
 use std::net::SocketAddr;
+use std::ops::Add;
 
 use tokio::prelude::*;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Stats {
     pub connect: u128,
     pub handshake: u128,
@@ -11,6 +12,21 @@ pub struct Stats {
     pub compelete: u128,
     pub read: u128,
     pub length: usize,
+}
+
+impl Add for Stats {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        Self {
+            connect: self.connect + other.connect,
+            waiting: self.waiting + other.waiting,
+            writing: self.writing + other.writing,
+            handshake: self.handshake + other.handshake,
+            compelete: self.compelete + other.compelete,
+            read: self.read + other.read,
+            length: self.length.max(other.length),
+        }
+    }
 }
 
 pub enum Body {

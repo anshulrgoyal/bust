@@ -1,9 +1,12 @@
 use http::Request;
 
-pub fn http_string<T>(req: &Request<T>) -> anyhow::Result<Vec<u8>> {
+pub fn http_string<T>(req: &Request<T>, auth: Option<String>) -> anyhow::Result<Vec<u8>> {
     let mut headers = String::from("");
     let host = match req.uri().host() {
-        Some(v) => v,
+        Some(v) => match auth {
+            Some(expr) => format!("{}@{}", expr, v),
+            None => v.to_owned(),
+        },
         None => {
             return Err(anyhow::anyhow!("host name not found"));
         }
@@ -17,7 +20,7 @@ pub fn http_string<T>(req: &Request<T>) -> anyhow::Result<Vec<u8>> {
     };
     headers.push_str(
         format!(
-            "Host: {}\r\nUser-Agent: Bust/0.0.1\r\nConnection:Close",
+            "Host: {}\r\nUser-Agent: Bust/0.0.1\r\nConnection: Close",
             host
         )
         .as_str(),
