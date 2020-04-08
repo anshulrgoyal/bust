@@ -1,9 +1,20 @@
 ![Rust](https://github.com/anshulrgoyal/bust/workflows/Rust/badge.svg)
+
 # bust
-College minor Project
+It is a simple server bench marking tool it is not a scientific tool for bench marking it provide a very crude idea of the load management capability of your server.
+
+# Highlights
+- It support both **HTTP** and **HTTPS** .
+- Custom method can be added to request using `-M` option .
+- Any header can be added to request using `-H` option and repeation is allowed .
+- File upload is also supported throught `-f` flag with mutlipart/formdata content-type header.
+- Body can be passed to supported type of request using `-d` flag .
+- Number of concurrent request is required. Can be passed with `-c` option.
+- Total number of request should also be passed using `-n` flag.
+- Auth details can be passed using `-a` option.
 
 ```
-Usage: ./target/release/bust <url> [-a <auth>] [-C <cookies>] [-M <method>] -c <concurrency> -n <total-request> [-H <headers>] [-f <file>] [-d <data>]
+Usage: bust <url> [-a <auth>] [-C <cookies>] [-M <method>] -c <concurrency> -n <total-request> [-H <headers>] [-f <file>] [-d <data>]
 
 A tool for Stress Testing
 

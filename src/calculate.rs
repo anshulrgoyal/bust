@@ -1,5 +1,6 @@
 use crate::request::Stats;
 use std::ops::Add;
+
 pub fn calculate_stats(min: &mut Stats, max: &mut Stats, c: &Stats, ac: &mut Stats) {
     min.connect = std::cmp::min(min.connect, c.connect);
     min.handshake = std::cmp::min(min.handshake, c.handshake);
