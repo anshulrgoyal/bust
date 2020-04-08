@@ -31,3 +31,49 @@ Options:
   --help            display usage information
 
 ```
+
+## Add Header to Request
+Adding a header is simple as adding just a option with format of `<header_name>=<header_value>` for example `content-type=application/json` . We can add any number of headers.
+
+```bash
+
+$ bust -n 20 -c 5 https://www.google.com -H auth=<auth-token> -H user-agent=<user-agent-name>
+
+``` 
+
+## Add Custom Method for Request
+Adding custom method is done by using `-M` option. All the **HTTP** method are supported. Eg. _POST_ , _PUT_ etc.
+
+```bash
+
+$ bust -n 20 -c 5 https://www.google.com -M POST -H auth=<auth-token> -H user-agent=<user-agent-name>
+
+``` 
+
+## Add file for upload
+Upload file with request using multipart/formdata header. Eg. `-f <field-name>=<file-path>` .
+
+```bash
+
+$ bust -n 20 -c 5 https://www.google.com -M POST -f image=./path/to/file
+
+``` 
+where `image` is field-name and `./path/to/file` is path of file.
+
+## Adding Body to request
+Body is passed using `-d` in form of string. Eg . -d \{\"name\":\"bust\"\}
+
+```bash
+
+$ bust -n 20 -c 5 https://www.google.com -M POST -H content-type=application/json -d \{\"name\":\"bust\"\}
+
+``` 
+
+## Adding Cookies to request
+Adding cookie is simple using `-C` option which is repeatable. Syntax `-C <cookie>` .
+
+```bash
+
+$ bust -n 20 -c 5 https://www.google.com -M POST -C auth=76rtitutuit
+
+``` 
