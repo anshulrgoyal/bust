@@ -1,25 +1,25 @@
 use crate::request::Stats;
-use std::ops::Add;
+use std::cmp::{min,max};
 
-pub fn calculate_stats(min: &mut Stats, max: &mut Stats, c: &Stats, ac: &mut Stats) {
-    min.connect = std::cmp::min(min.connect, c.connect);
-    min.handshake = std::cmp::min(min.handshake, c.handshake);
-    min.waiting = std::cmp::min(min.waiting, c.waiting);
-    min.writing = std::cmp::min(min.writing, c.writing);
-    min.read = std::cmp::min(min.read, c.read);
-    min.compelete = std::cmp::min(min.compelete, c.compelete);
+pub fn calculate_stats(min_value: &mut Stats, max_value: &mut Stats, c: &Stats, ac: &mut Stats) {
+    min_value.connect = min(min_value.connect, c.connect);
+    min_value.handshake = min(min_value.handshake, c.handshake);
+    min_value.waiting = min(min_value.waiting, c.waiting);
+    min_value.writing = min(min_value.writing, c.writing);
+    min_value.read = min(min_value.read, c.read);
+    min_value.compelete = min(min_value.compelete, c.compelete);
 
-    max.connect = std::cmp::max(max.connect, c.connect);
-    max.handshake = std::cmp::max(max.handshake, c.handshake);
-    max.waiting = std::cmp::max(max.waiting, c.waiting);
-    max.writing = std::cmp::max(max.writing, c.writing);
-    max.read = std::cmp::max(max.read, c.read);
-    max.compelete = std::cmp::max(max.compelete, c.compelete);
+    max_value.connect = max(max_value.connect, c.connect);
+    max_value.handshake = max(max_value.handshake, c.handshake);
+    max_value.waiting = max(max_value.waiting, c.waiting);
+    max_value.writing = max(max_value.writing, c.writing);
+    max_value.read = max(max_value.read, c.read);
+    max_value.compelete = max(max_value.compelete, c.compelete);
 
-    ac.connect = ac.connect.add(c.connect);
-    ac.handshake = ac.handshake.add(c.handshake);
-    ac.waiting = ac.waiting.add(c.waiting);
-    ac.writing = ac.writing.add(c.writing);
-    ac.read = ac.read.add(c.read);
-    ac.compelete = ac.compelete.add(c.compelete);
+    ac.connect += c.connect;
+    ac.handshake += c.handshake;
+    ac.waiting += c.waiting;
+    ac.writing += c.writing;
+    ac.read += c.read;
+    ac.compelete += c.compelete;
 }
